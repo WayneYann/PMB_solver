@@ -1025,26 +1025,14 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
       }
       else
       {
-	// Linear porosity profile
         pore[i]=(((pore2-pore1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+pore1;
         diam[i]=(((diam2-diam1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+diam1;
-        //scond[i] = (((scond2-scond1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+scond1;
- 
-        //Quadratic porosity profile
-        //pore[i]=  (pore2-pore1)/pow((2*m_dzmid),2)*pow(z(i),2) + pore1;
-        //diam[i]=  (diam2-diam1)/pow((2*m_dzmid),2)*pow(z(i),2) + diam1;
-
-	//Hyperbolic Tangent porosity profile
-	//pore[i] = m_porea* tanh(m_poreb*(z(i) - m_porec)) + m_pored;
-        //diam[i] = m_diama* tanh(m_diamb*(z(i) - m_diamc)) + m_diamd;
 	
        }
        RK[i]=(3*(1-pore[i])/diam[i]);   //extinction coefficient, PSZ, Hsu and Howell(1992)
        Cmult[i]=-400*diam[i]+0.687;	// Nusselt number coefficients
        mpow[i]=443.7*diam[i]+0.361;
-       //scond[i]=0.188-17.5*diam[i];    //solid phase thermal conductivity, PSZ, Hsu and Howell(1992) 
-       //scond[i] = 0.9;
-       
+       scond[i]=0.188-17.5*diam[i];    //solid phase thermal conductivity, PSZ, Hsu and Howell(1992) 
      }
     
     
@@ -1053,12 +1041,10 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
        if (z(i)<m_zmid)
        {
           Omega[i]=Omega1;		//scattering albedo/extinction
-	  scond[i] = scond1; 
        }
        else
        {
           Omega[i]=Omega2;
-	  scond[i]=scond2;
        }
     }
     
@@ -1329,7 +1315,7 @@ void PorousFlow::restore(const XML_Node& dom, doublereal* soln, int loglevel)
 	getFloatArray(ref, x, false, "", "Hconv");
 	hconv.resize(nPoints());
 	if (x.size() == nPoints()) {
-            for (size_t i = 0; i < x.size()-1; i++) { 
+            for (size_t i = 0; i < x.size(); i++) { 
                 hconv[i] = x[i];
             }
         } else if (!x.empty()) {
@@ -1386,7 +1372,7 @@ XML_Node& PorousFlow::save(XML_Node& o, const doublereal* const sol)
     }
     addNamedFloatArray(solid, "SolidConductivity", nPoints(), &values[0]);
 
-    for (size_t i = 0; i < nPoints()-1; i++) { 
+    for (size_t i = 0; i < nPoints(); i++) { 
         values[i] = hconv[i];
     }
     addNamedFloatArray(solid, "Hconv", nPoints(), &values[0]);
