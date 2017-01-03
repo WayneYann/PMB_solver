@@ -1028,18 +1028,26 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
 	// Linear porosity profile
         pore[i]=(((pore2-pore1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+pore1; // porosity profile
         diam[i]=(((diam2-diam1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+diam1; //pore diameter profile
-        scond[i] = (((scond2-scond1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+scond1; //solid thermal conductivity
-        Omega[i] = (((Omega2-Omega1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+Omega1; //scattering albedo/extinction
        }
        RK[i]=(3*(1-pore[i])/diam[i]);   //extinction coefficient, PSZ, Hsu and Howell(1992)
        Cmult[i]=-400*diam[i]+0.687;	// Nusselt number coefficients
        mpow[i]=443.7*diam[i]+0.361;
-       
-       //scond[i]=0.188-17.5*diam[i];    //solid phase thermal conductivity, PSZ, Hsu and Howell(1992) 
+       scond[i]=0.188-17.5*diam[i];    //solid phase thermal conductivity, PSZ, Hsu and Howell(1992) 
        
      }
     
-    
+     for (int i=0; i<=length-1;i++)
+    {
+       if (z(i)<m_zmid)
+       {
+          Omega[i]=Omega1;		//scattering albedo/extinction
+       }
+       else
+       {
+          Omega[i]=Omega2;
+       }
+    }
+
     int solidenergy=0;
     //loop over gas energy vector. If it is going to be solved then find hv
     for(j=jmin;j<=jmax;j++)
@@ -1191,24 +1199,6 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
                 rsd[index(c_offset_T, j)] -= rdt*(T(x,j) - T_prev(j));
                 diag[index(c_offset_T, j)] = 1;
 
-		//Variable Porosity related modifcations (derivative of gradient terms included)
-               // sum *= GasConstant * T(x,j) * pore[j]; //added porosity 
-	       // dtdzj = (T(x, j)*pore[j] - T(x, j-1)*pore[j-1])/m_dz[j-1]; //added porosity
-               // sum2 *= GasConstant * dtdzj;
-
-	       // doublereal c1 = m_tcon[j-1]*(T(x,j)*pore[j] - T(x,j-1)*pore[j]);
-	       // doublereal c2 = m_tcon[j]*(T(x,j+1)*pore[j+1] - T(x,j)*pore[j]);
-               // doublereal divHeatFlux_pore = -2.0*(c2/(z(j+1) - z(j)) - c1/(z(j) - z(j-1)))/(z(j+1) - z(j-1));
-   
-               //  rsd[index(c_offset_T, j)]   =
-               //     - m_cp[j]*rho_u(x,j)*pore[j]*dTdz(x,j)//added porosity, advective term
-               //    - divHeatFlux_pore - sum - sum2; //divHeatFlux is conductive heat flux/ replaced with porosity term in temperature gradient
-               // 
-               // rsd[index(c_offset_T, j)] -= (hconv[j]*(T(x,j)-Tw[j])); //added convective term
-               // rsd[index(c_offset_T, j)] /= (m_rho[j]*m_cp[j]*pore[j]); //added porosity
-
-               // rsd[index(c_offset_T, j)] -= rdt*(T(x,j) - T_prev(j)); //transient term
-               // diag[index(c_offset_T, j)] = 1;
             } else {
                 // residual equations if the energy equation is disabled
                 rsd[index(c_offset_T, j)] = T(x,j) - T_fixed(j);
