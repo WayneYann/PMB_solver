@@ -1026,51 +1026,27 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
       else
       {
 	// Linear porosity profile
-        pore[i]=(((pore2-pore1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+pore1;
-        diam[i]=(((diam2-diam1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+diam1;
-        //scond[i] = (((scond2-scond1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+scond1;
- 
-        //Quadratic porosity profile
-        //pore[i]=  (pore2-pore1)/pow((2*m_dzmid),2)*pow(z(i),2) + pore1;
-        //diam[i]=  (diam2-diam1)/pow((2*m_dzmid),2)*pow(z(i),2) + diam1;
-
-	//Hyperbolic Tangent porosity profile
-	//pore[i] = m_porea* tanh(m_poreb*(z(i) - m_porec)) + m_pored;
-        //diam[i] = m_diama* tanh(m_diamb*(z(i) - m_diamc)) + m_diamd;
-	
+        pore[i]=(((pore2-pore1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+pore1; // porosity profile
+        diam[i]=(((diam2-diam1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+diam1; //pore diameter profile
+        scond[i] = (((scond2-scond1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+scond1; //solid thermal conductivity
+        Omega[i] = (((Omega2-Omega1)/(2*m_dzmid))*(z(i)-(m_zmid-m_dzmid) ))+Omega1; //scattering albedo/extinction
        }
        RK[i]=(3*(1-pore[i])/diam[i]);   //extinction coefficient, PSZ, Hsu and Howell(1992)
        Cmult[i]=-400*diam[i]+0.687;	// Nusselt number coefficients
        mpow[i]=443.7*diam[i]+0.361;
+       
        //scond[i]=0.188-17.5*diam[i];    //solid phase thermal conductivity, PSZ, Hsu and Howell(1992) 
-       //scond[i] = 0.9;
        
      }
     
     
-    for (int i=0; i<=length-1;i++)
-    {
-       if (z(i)<m_zmid)
-       {
-          Omega[i]=Omega1;		//scattering albedo/extinction
-	  scond[i] = scond1; 
-       }
-       else
-       {
-          Omega[i]=Omega2;
-	  scond[i]=scond2;
-       }
-    }
-    
-   int solidenergy=0;
+    int solidenergy=0;
     //loop over gas energy vector. If it is going to be solved then find hv
     for(j=jmin;j<=jmax;j++)
     {
-       //std::cout << "gas energy" << m_do_energy[j] << std::endl;
        solidenergy+=m_do_energy[j];
     }
     solidenergy=1;
-//    std::cout << "solid energy" << solidenergy << std::endl;
     if (solidenergy!=0)
     {
        for (j = jmin; j <= jmax; j++)
@@ -1083,10 +1059,7 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
           hconv[j] = (lam * nusselt)/pow(diam[j],2);
           
        }
-       //m_dosolid = true;
-      //std::cout << "dosolid" << Domain1D::container().dosolid << std::endl;   
 
-     //solid(x,hconv,scond,RK,Omega,srho,sCp,rdt);
        if (container().dosolid==1 )
        {
           solid(x,hconv,scond,RK,Omega,srho,sCp,rdt);
@@ -1218,7 +1191,7 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
                 rsd[index(c_offset_T, j)] -= rdt*(T(x,j) - T_prev(j));
                 diag[index(c_offset_T, j)] = 1;
 
-		//Porosity related modifcations
+		//Variable Porosity related modifcations (derivative of gradient terms included)
                // sum *= GasConstant * T(x,j) * pore[j]; //added porosity 
 	       // dtdzj = (T(x, j)*pore[j] - T(x, j-1)*pore[j-1])/m_dz[j-1]; //added porosity
                // sum2 *= GasConstant * dtdzj;
@@ -1329,7 +1302,7 @@ void PorousFlow::restore(const XML_Node& dom, doublereal* soln, int loglevel)
 	getFloatArray(ref, x, false, "", "Hconv");
 	hconv.resize(nPoints());
 	if (x.size() == nPoints()) {
-            for (size_t i = 0; i < x.size()-1; i++) { 
+            for (size_t i = 0; i < x.size(); i++) { 
                 hconv[i] = x[i];
             }
         } else if (!x.empty()) {
@@ -1386,7 +1359,7 @@ XML_Node& PorousFlow::save(XML_Node& o, const doublereal* const sol)
     }
     addNamedFloatArray(solid, "SolidConductivity", nPoints(), &values[0]);
 
-    for (size_t i = 0; i < nPoints()-1; i++) { 
+    for (size_t i = 0; i < nPoints(); i++) { 
         values[i] = hconv[i];
     }
     addNamedFloatArray(solid, "Hconv", nPoints(), &values[0]);
