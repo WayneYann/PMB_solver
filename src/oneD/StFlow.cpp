@@ -8,7 +8,7 @@
 #include "cantera/base/ctml.h"
 #include "cantera/transport/TransportBase.h"
 #include "cantera/numerics/funcs.h"
-//#include "cantera/oneD/MultiJac.h"
+#include "cantera/oneD/MultiJac.h"
 #include "cantera/oneD/OneDim.h"
 #include <cstdio>
 using namespace std;
@@ -35,7 +35,7 @@ StFlow::StFlow(IdealGasPhase* ph, size_t nsp, size_t points) :
     m_thermo = ph;
 
     if (ph == 0) {
-        return; // used to create a dummy object
+        return;    // used to create a dummy object
     }
 
     size_t nsp2 = m_thermo->nSpecies();
@@ -43,6 +43,7 @@ StFlow::StFlow(IdealGasPhase* ph, size_t nsp, size_t points) :
         m_nsp = nsp2;
         Domain1D::resize(m_nsp+4, points);
     }
+
 
     // make a local copy of the species molecular weight vector
     m_wt = m_thermo->molecularWeights();
@@ -57,6 +58,7 @@ StFlow::StFlow(IdealGasPhase* ph, size_t nsp, size_t points) :
 
     // but turn off the energy equation at all points
     m_do_energy.resize(m_points,false);
+
     m_diff.resize(m_nsp*m_points);
     m_multidiff.resize(m_nsp*m_nsp*m_points);
     m_flux.resize(m_nsp,m_points);
@@ -65,6 +67,7 @@ StFlow::StFlow(IdealGasPhase* ph, size_t nsp, size_t points) :
     m_qdotRadiation.resize(m_points, 0.0);
 
     //-------------- default solution bounds --------------------
+
     setBounds(0, -1e20, 1e20); // no bounds on u
     setBounds(1, -1e20, 1e20); // V
     setBounds(2, 200.0, 1e9); // temperature bounds
@@ -935,7 +938,6 @@ void PorousFlow::setupGrid(size_t n, const doublereal* z)
     }
 	AxiStagnFlow::setupGrid(n,z);
 }
-
 void PorousFlow::eval(size_t jg, doublereal* xg,
                   doublereal* rg, integer* diagg, doublereal rdt)
 {
@@ -974,11 +976,11 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
     size_t j, k;
     m_dovisc = 1;
 
-    updateThermo(x, j0, j1);
     //-----------------------------------------------------
     //              update properties
     //-----------------------------------------------------
 
+    updateThermo(x, j0, j1);
     // update transport properties only if a Jacobian is not
     // being evaluated
     if (jg == npos) {
@@ -1000,8 +1002,10 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
     doublereal lam, visc, Re; //Defining new variables.
     int length=m_points;
     hconv.resize(length);  
-  
+
     //initialize property vectors
+    //
+    //
     pore.resize(length);
     diam.resize(length);
     scond.resize(length);
@@ -1033,9 +1037,7 @@ void PorousFlow::eval(size_t jg, doublereal* xg,
        Cmult[i]=-400*diam[i]+0.687;	// Nusselt number coefficients
        mpow[i]=443.7*diam[i]+0.361;
        scond[i]=0.188-17.5*diam[i];    //solid phase thermal conductivity, PSZ, Hsu and Howell(1992) 
-     }
-    
-    
+    }
     for (int i=0; i<=length-1;i++)
     {
        if (z(i)<m_zmid)
@@ -1315,7 +1317,7 @@ void PorousFlow::restore(const XML_Node& dom, doublereal* soln, int loglevel)
 	getFloatArray(ref, x, false, "", "Hconv");
 	hconv.resize(nPoints());
 	if (x.size() == nPoints()) {
-            for (size_t i = 0; i < x.size(); i++) { 
+            for (size_t i = 0; i < x.size()-1; i++) { 
                 hconv[i] = x[i];
             }
         } else if (!x.empty()) {
@@ -1372,7 +1374,7 @@ XML_Node& PorousFlow::save(XML_Node& o, const doublereal* const sol)
     }
     addNamedFloatArray(solid, "SolidConductivity", nPoints(), &values[0]);
 
-    for (size_t i = 0; i < nPoints(); i++) { 
+    for (size_t i = 0; i < nPoints()-1; i++) { 
         values[i] = hconv[i];
     }
     addNamedFloatArray(solid, "Hconv", nPoints(), &values[0]);
